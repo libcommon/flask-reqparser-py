@@ -26,3 +26,4 @@ from .request_parser import RequestParser
 
 
 __author__ = "libcommon"
+__version__ = "0.1.0"
