@@ -1,5 +1,4 @@
-#!/usr/bin/env sh
-## make-release.sh
+## setup.py
 ##
 ## Copyright (c) 2019 libcommon
 ##
@@ -22,25 +21,31 @@
 ## SOFTWARE.
 
 
-if [ $# -ge 1 ]
-then
-    ./scripts/remove-tests.sh "${@}"
-fi
+import os
+import setuptools
 
-for FILENAME in "pylintrc" "requirements-dev.txt"
-do
-    if [ -f $FILENAME ]
-    then
-        echo "::: INFO: Removing $FILENAME"
-        rm $FILENAME
-    fi
-done 
+if os.path.isfile("README.md"):
+    with open("README.md", "r") as readme:
+        long_description = readme.read()
+else:
+    long_description = ""
 
-for DIRECTORY in "__pycache__" ".mypy_cache" "scripts"
-do
-    if [ -d $DIRECTORY ]
-    then
-        echo "::: INFO: Removing $DIRECTORY"
-        rm -rf $DIRECTORY
-    fi
-done 
+
+setuptools.setup(
+    name="PACKAGE_NAME",
+    version="PACKAGE_VERSION",
+    author="libcommon",
+    author_email="libcommon@protonmail.com",
+    description="PACKAGE_SHORT_DESCRIPTION",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="PACKAGE_CODE_URL",
+    packages=setuptools.find_packages(),
+    classifiers=[
+        "Intended Audience :: Developers",
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
+    python_requires='>=PACKAGE_MIN_PYTHON_VERSION',
+)
