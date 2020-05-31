@@ -65,8 +65,8 @@ class RequestParser(ArgumentParser):
                    ctx: Optional[RequestContext] = None,
                    drop_unknown: bool = True) -> Tuple[Namespace, Optional[List[str]]]:
         # If no request context provided, get it from the stack
-        if ctx is None:
-            if _request_ctx_stack.top is not None:
+        if not ctx:
+            if _request_ctx_stack.top:
                 ctx = _request_ctx_stack.top
             else:
                 raise RuntimeError("Request context stack is empty, must be within an app context")
@@ -75,7 +75,7 @@ class RequestParser(ArgumentParser):
         #     PUT/POST => request body
         if ctx.request.method == "GET":
             args = ctx.request.args.items()
-        elif ctx.request.method in ["POST", "PUT"] and ctx.request.is_json:
+        elif ctx.request.method in {"POST", "PUT"} and ctx.request.is_json:
             args = ctx.request.get_json()
             if not isinstance(args, dict):
                 raise TypeError("Expected JSON data in request body, received {}".format(ctx.request.mimetype))
