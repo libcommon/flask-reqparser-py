@@ -24,5 +24,3 @@
 
 from .request_parser import RequestParser
 
-
-__author__ = "libcommon"
