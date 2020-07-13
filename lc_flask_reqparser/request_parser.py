@@ -64,30 +64,32 @@ class RequestParser(ArgumentParser):
                    namespace: Optional[Namespace] = None,
                    ctx: Optional[RequestContext] = None,
                    drop_unknown: bool = True) -> Tuple[Namespace, Optional[List[str]]]:
-        # If no request context provided, get it from the stack
-        if not ctx:
-            if _request_ctx_stack.top:
-                ctx = _request_ctx_stack.top
+        # If args not provided
+        if not args:
+            # If no request context provided, get it from the stack
+            if not ctx:
+                if _request_ctx_stack.top:
+                    ctx = _request_ctx_stack.top
+                else:
+                    raise RuntimeError("Request context stack is empty, must be within an app context")
+            # Get request arguments by request method.
+            #     GET => URL parameters
+            #     PUT/POST => request body
+            if ctx.request.method == "GET":
+                args = ctx.request.args.items()
+            elif ctx.request.method in {"POST", "PUT"}:
+                args = ctx.request.get_json() if ctx.request.is_json else ctx.request.form
+                args = args.items()
             else:
-                raise RuntimeError("Request context stack is empty, must be within an app context")
-        # Get request arguments by request method.
-        #     GET => URL parameters
-        #     PUT/POST => request body
-        if ctx.request.method == "GET":
-            args = ctx.request.args.items()
-        elif ctx.request.method in {"POST", "PUT"} and ctx.request.is_json:
-            args = ctx.request.get_json()
-            if not isinstance(args, dict):
-                raise TypeError("Expected JSON data in request body, received {}".format(ctx.request.mimetype))
-            args = args.items()
-        else:
-            args = list()
-        # Generate CLI-style arguments from request args
-        split_args = list()
-        for arg_name, arg_value in args:    # type: ignore
-            split_args.append("--{}".format(arg_name))
-            split_args.append(arg_value)
-        return self.parse_known_args(split_args, namespace, drop_unknown)
+                args = list()
+            # Generate CLI-style arguments from request args
+            split_args = list()
+            for arg_name, arg_value in args:    # type: ignore
+                split_args.append("--{}".format(arg_name))
+                split_args.append(arg_value)
+            return self.parse_known_args(split_args, namespace, drop_unknown)
+        # Otherwise, just pass args through
+        return self.parse_known_args(args, namespace, drop_unknown)
 
     def error(self, message: str) -> NoReturn:
         raise RuntimeError("Failed to parse provided arguments ({})".format(message))
@@ -140,6 +142,12 @@ if os.environ.get("ENVIRONMENT") == "TEST":
                  ("username", "password", "help"),
                  False,
                  (Namespace(username="lib", password="common", help=None), ["--apple", "honey crisp"])),
+                # #1: Handle JSON _and_ form data in POST/PUT requests
+                ("POST request to /, body parameters username and password as form data",
+                 dict(path="/", method="POST", data=dict(username="lib", password="common")),
+                 ("username", "password"),
+                 True,
+                 (Namespace(username="lib", password="common"), None)),
                 ("PUT request to /libcommon, body parameter username",
                  dict(path="/", method="PUT", json=dict(username="lib", app="le")),
                  ("username", "apple"),
